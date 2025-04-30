@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kanu: Gold Overview</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      background: #fff8e1;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #bfa14f;
+    }
+    h2{
+      font-family: 'Arial', sans-serif;
+      font-size: 18px;
+    }
+    .content {
+            padding: 20px;
+            height: 100%;
+            background-color: #f4f4f4;
+            margin-bottom: 250px; /* Extra space to prevent overlap with footer */
+        }
+    
+     /* Ticker styling */
+        .ticker {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #fff8e1;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+            font-size: 14px;
+            z-index: 1000; /* Ensure it stays on top */
+        }
+    
+    .section {
+      margin-top: 5px;
+      margin-bottom: 40px;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+    .news-section {
+      max-width: 420px;
+      margin-top:5px;
+      margin-bottom: 20px auto;
+      padding: 10px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+    .news-section h2 {
+      text-align: center;
+      color: #bfa14f;
+    }
+    .card h2 {
+      color: #bfa14f;
+    }
+    .widget-wrapper {
+      width: 100%;
+      max-width: 400px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tradingview-widget-container__widget {
+      min-width: 400px;
+    }
+    .charts-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .chart {
+      flex: 1 1 45%;
+      max-width: 100%;
+    }
+    @media screen and (max-width: 768px) {
+      .charts-container {
+        flex-direction: column;
+      }
+      .chart {
+        flex: 1 1 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Kanu's GOLD Market Overview</h1>
+
+  
+     <h2 style="margin-bottom: 0px;">Live Gold Price</h2>
+  <!-- Gold Price Charts -->
+  <div class="section">
+     <div class="charts-container">
+      <div class="chart">
+        <h3>
+  <img src="https://flagcdn.com/w40/in.png" alt="India Flag" style="height: 1em; vertical-align: middle; margin-right: 0.3em;">
+  Rupees: Price 1gram
+</h3>
+        <div class="tradingview-widget-container">
+          <div id="tradingview_xauinrg_chart"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
+          {
+            "symbols": [["FX_IDC:XAUINRG|3M"]],
+            "chartOnly": false,
+            "width": "100%",
+            "height": "400",
+            "locale": "en",
+            "colorTheme": "light",
+            "autosize": true,
+            "showVolume": false,
+            "showMA": false,
+            "hideDateRanges": false,
+            "hideMarketStatus": false,
+            "hideSymbolLogo": true,
+            "scalePosition": "right",
+            "scaleMode": "Normal",
+            "fontFamily": "Trebuchet MS, sans-serif"
+          }
+          </script>
+        </div>
+      </div>
+
+      <div class="chart">
+        <h3>
+  <img src="https://flagcdn.com/us.svg" alt="USA Flag" style="height: 1em; vertical-align: middle; margin-right: 0.4em;">
+  USD: 1 Troy Oz (31.1035 gm)
+</h3>
+
+        <div class="tradingview-widget-container">
+          <div id="tradingview_xausd_chart"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
+          {
+            "symbols": [["FX_IDC:XAUUSD|3M"]],
+            "chartOnly": false,
+            "width": "100%",
+            "height": "400",
+            "locale": "en",
+            "colorTheme": "light",
+            "autosize": true,
+            "showVolume": false,
+            "showMA": false,
+            "hideDateRanges": false,
+            "hideMarketStatus": false,
+            "hideSymbolLogo": true,
+            "scalePosition": "right",
+            "scaleMode": "Normal",
+            "fontFamily": "Trebuchet MS, sans-serif"
+          }
+          </script>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Insert this inside your body, AFTER the XAU/USD chart section -->
+
+  <h2 style="margin-bottom: 0px;">Market Sentiment</h2>
+<!-- Technical Analysis Widget -->
+<div class="section">
+      <div class="tradingview-widget-container" style="max-width: 100%; overflow: hidden;">
+   </div>
+    <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js" async>
+    {
+      "interval": "1M",
+      "width": "100%",
+      "isTransparent": true,
+      "height": "400",
+      "symbol": "OANDA:XAUUSD",
+      "showIntervalTabs": true,
+      "displayMode": "single",
+      "locale": "en",
+      "colorTheme": "light"
+    }
+    </script>
+  </div>
+</div>
+
+  <h2 style="margin-bottom: 0px;">Gold News</h2>
+  <!-- TradingView News Widget -->
+  <div class="news-section">
+    <div class="widget-wrapper">
+      <div class="tradingview-widget-container">
+        <div class="tradingview-widget-container__widget"></div>
+        
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-timeline.js" async>
+        {
+          "feedMode": "symbol",
+          "symbol": "OANDA:XAUUSD",
+          "isTransparent": true,
+          "displayMode": "adaptive",
+          "width": 400,
+          "height": 550,
+          "colorTheme": "light",
+          "locale": "en"
+        }
+        </script>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ticker -->
+    <div class="ticker">
+        <!-- TradingView Widget BEGIN -->
+        <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+            {
+            "symbols": [
+                {
+                    "description": "Rupee Gold",
+                    "proName": "FX_IDC:XAUINRG"
+                },
+                {
+                    "description": "USD Gold per Oz",
+                    "proName": "OANDA:XAUUSD"
+                },
+                {
+                    "description": "S&P 500",
+                    "proName": "OANDA:SPX500USD"
+                },
+                {
+                    "description": "SENSEX",
+                    "proName": "BSE:SENSEX"
+                },
+                {
+                    "description": "USD INR",
+                    "proName": "FX_IDC:USDINR"
+                },
+                {
+                    "description": "SGD INR",
+                    "proName": "FX_IDC:SGDINR"
+                },
+                {
+                    "description": "Bitcoin",
+                    "proName": "BITSTAMP:BTCUSD"
+                }
+            ],
+            "showSymbolLogo": true,
+            "isTransparent": true,
+            "displayMode": "adaptive",
+            "colorTheme": "light",
+            "locale": "en"
+            }
+            </script>
+        </div>
+        <!-- TradingView Widget END -->
+  
+</body>
+</html>
