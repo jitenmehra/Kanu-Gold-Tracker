@@ -110,15 +110,23 @@
   <h1>Kanu's GOLD Digest</h1>
 
   <!-- Recent Gold Prices Table -->
-  <h2 style="margin-bottom: 0px; display: flex; align-items: center;">
-  <img src="https://vectorseek.com/wp-content/uploads/2023/09/United-Overseas-Bank-Icon-Logo-Vector.svg-.png" 
-       alt="UOB Logo" style="height: 30px; margin-right: 10px; margin-bottom: 10px;">
-  Argor Cast Bar 100gm
-</h2>
-  <div class="section" id="gold-price-log">
-    <p>Loading latest prices...</p>
+  <h2 style="margin-bottom: 0px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+  <div style="display: flex; align-items: center;">
+    <img src="https://vectorseek.com/wp-content/uploads/2023/09/United-Overseas-Bank-Icon-Logo-Vector.svg-.png" 
+         alt="UOB Logo" style="height: 30px; margin-right: 10px; margin-bottom: 10px;">
+    Argor Cast Bar 100gm
   </div>
-
+  <a href="https://www.uob.com.sg/online-rates/gold-and-silver-prices.page" 
+     target="_blank" 
+     rel="noopener noreferrer" 
+     style="background-color: #0066B3; color: white; padding: 5px 15px; text-decoration: none; border-radius: 4px; font-weight: bold; margin-left: 10px; font-size: 14px; white-space: nowrap; box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.3);">
+    UOB
+  </a>
+</h2>
+<div class="section" id="gold-price-log">
+  <p>Loading latest prices...</p>
+</div>
+  
 <script>
 async function loadGoldPriceLog() {
   const res = await fetch("https://dl.dropboxusercontent.com/scl/fi/0650f06loeqnd6xd6cjrf/gold_price_log.csv?rlkey=vt1qtw8drvub3yg18u0owcu7u&raw=1");
@@ -136,40 +144,63 @@ async function loadGoldPriceLog() {
   }
   
   // Function to format the date into the desired format
-  function formatDateToCustomFormat(datetimeStr) {
-    try {
-      const parts = datetimeStr.trim().split(/\s+/);
-      if (parts.length < 2) return datetimeStr;
-      const [datePart, timePart, ampm] = parts;
-      const [a, b, c] = datePart.split('/').map(Number);
-      let [hour, minute] = timePart.split(':').map(Number);
-      
-      if (isNaN(a) || isNaN(b) || isNaN(c)) return datetimeStr;
-      
-      // Heuristic: if year is > 31, assume MM/DD/YY
-      let month, day, year;
-      if (c > 31) {
-        [day, month, year] = [a, b, c];
-      } else {
-        [month, day, year] = [a, b, c];
-      }
-      
-      if (ampm?.toLowerCase() === 'pm' && hour !== 12) hour += 12;
-      if (ampm?.toLowerCase() === 'am' && hour === 12) hour = 0;
-      
-      const date = new Date(2000 + (year % 100), month - 1, day, hour, minute);
-      if (isNaN(date.getTime())) return datetimeStr;
-      
+function formatDateToCustomFormat(datetimeStr) {
+  try {
+    datetimeStr = datetimeStr.trim();
+
+    // Case 1: YYYY-MM-DD HH:MM:SS
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(datetimeStr)) {
+      const [datePart, timePart] = datetimeStr.split(" ");
+      const [year, month, day] = datePart.split("-").map(Number);
+      const [hour, minute] = timePart.split(":").map(Number);
+      const date = new Date(year, month - 1, day, hour, minute);
+
       const monthShort = date.toLocaleString('default', { month: 'short' });
       const hour12 = date.getHours() % 12 || 12;
       const min = String(date.getMinutes()).padStart(2, '0');
       const suffix = date.getHours() >= 12 ? 'pm' : 'am';
-      
+
       return `${monthShort}/${day}, ${hour12}:${min}${suffix}`;
-    } catch {
-      return datetimeStr;
     }
+
+    // Case 2: MM/DD/YY HH:MM AM/PM
+    const parts = datetimeStr.split(/\s+/);
+    if (parts.length < 2) return datetimeStr;
+
+    const [datePart, timePart, ampm] = parts;
+    const [a, b, c] = datePart.split('/').map(Number);
+    let [hour, minute] = timePart.split(':').map(Number);
+
+    if (isNaN(a) || isNaN(b) || isNaN(c)) return datetimeStr;
+
+    let month, day, year;
+    if (c > 31) {
+      [day, month, year] = [a, b, c];
+    } else {
+      [month, day, year] = [a, b, c];
+    }
+
+    if (ampm?.toLowerCase() === 'pm' && hour !== 12) hour += 12;
+    if (ampm?.toLowerCase() === 'am' && hour === 12) hour = 0;
+
+    const date = new Date(2000 + (year % 100), month - 1, day, hour, minute);
+    if (isNaN(date.getTime())) return datetimeStr;
+
+    const monthShort = date.toLocaleString('default', { month: 'short' });
+    const hour12 = date.getHours() % 12 || 12;
+    const min = String(date.getMinutes()).padStart(2, '0');
+    const suffix = date.getHours() >= 12 ? 'pm' : 'am';
+
+    return `${monthShort}/${day}, ${hour12}:${min}${suffix}`;
+  } catch {
+    return datetimeStr;
   }
+}
+
+  function cleanPrice(priceStr) {
+  return priceStr.endsWith('.00') ? priceStr.slice(0, -3) : priceStr;
+}
+
   
   const seenPrices = new Set();
   const latestUnique = [];
@@ -221,7 +252,7 @@ async function loadGoldPriceLog() {
         <tr><th>Date & Time</th><th>Bank Sell</th><th>Bank Buy</th></tr>
       </thead>
       <tbody>
-        ${latestUnique.map(row => `<tr><td>${row.time}</td><td>${row.price}</td><td>${row.buyPrice}</td></tr>`).join("")}
+        ${latestUnique.map(row => `<tr><td>${row.time}</td><td>${cleanPrice(row.price)}</td><td>${cleanPrice(row.buyPrice)}</td></tr>`).join("")}
       </tbody>
     </table>
   `;
