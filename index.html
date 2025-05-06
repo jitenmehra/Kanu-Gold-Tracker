@@ -16,31 +16,28 @@
       text-align: center;
       color: #bfa14f;
     }
-    h2{
+    h2 {
       font-family: 'Arial', sans-serif;
       font-size: 18px;
     }
     .content {
-            padding: 20px;
-            height: 100%;
-            background-color: #f4f4f4;
-            margin-bottom: 250px; /* Extra space to prevent overlap with footer */
-        }
-    
-     /* Ticker styling */
-        .ticker {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background-color: #fff8e1;
-            color: white;
-            padding: 10px 0;
-            text-align: center;
-            font-size: 14px;
-            z-index: 1000; /* Ensure it stays on top */
-        }
-    
+      padding: 20px;
+      height: 100%;
+      background-color: #f4f4f4;
+      margin-bottom: 250px;
+    }
+    .ticker {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: #fff8e1;
+      color: white;
+      padding: 10px 0;
+      text-align: center;
+      font-size: 14px;
+      z-index: 1000;
+    }
     .section {
       margin-top: 5px;
       margin-bottom: 40px;
@@ -51,7 +48,7 @@
     }
     .news-section {
       max-width: 420px;
-      margin-top:5px;
+      margin-top: 5px;
       margin-bottom: 20px auto;
       padding: 10px;
       background: white;
@@ -92,22 +89,160 @@
         flex: 1 1 100%;
       }
     }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f8f1d6;
+      color: #333;
+    }
   </style>
 </head>
 <body>
 
   <h1>Kanu's GOLD Digest</h1>
 
+  <!-- Recent Gold Prices Table -->
+  <h2 style="margin-bottom: 0px; display: flex; align-items: center;">
+  <img src="https://vectorseek.com/wp-content/uploads/2023/09/United-Overseas-Bank-Icon-Logo-Vector.svg-.png" 
+       alt="UOB Logo" style="height: 30px; margin-right: 10px; margin-bottom: 10px;">
+  Argor Cast Bar 100gm
+</h2>
+  <div class="section" id="gold-price-log">
+    <p>Loading latest prices...</p>
+  </div>
+
+<script>
+async function loadGoldPriceLog() {
+  const res = await fetch("https://dl.dropboxusercontent.com/scl/fi/0650f06loeqnd6xd6cjrf/gold_price_log.csv?rlkey=vt1qtw8drvub3yg18u0owcu7u&raw=1");
+  const csv = await res.text();
+  const lines = csv.trim().split("\n");
+  const headers = lines[0].split(",").map(h => h.trim());
+  const dataRows = lines.slice(1).map(row => row.split(",").map(cell => cell.trim()));
+  const sellIndex = headers.indexOf("Sell Price");
+  const buyIndex = headers.indexOf("Buy Price");
+  const timeIndex = headers.indexOf("Scraped At");
   
-     <h2 style="margin-bottom: 0px;">Live Gold Price</h2>
-  <!-- Gold Price Charts -->
+  if (sellIndex === -1 || buyIndex === -1 || timeIndex === -1) {
+    console.error("Column headers not found.");
+    return;
+  }
+  
+  // Function to format the date into the desired format
+  function formatDateToCustomFormat(datetimeStr) {
+    try {
+      const parts = datetimeStr.trim().split(/\s+/);
+      if (parts.length < 2) return datetimeStr;
+      const [datePart, timePart, ampm] = parts;
+      const [a, b, c] = datePart.split('/').map(Number);
+      let [hour, minute] = timePart.split(':').map(Number);
+      
+      if (isNaN(a) || isNaN(b) || isNaN(c)) return datetimeStr;
+      
+      // Heuristic: if year is > 31, assume MM/DD/YY
+      let month, day, year;
+      if (c > 31) {
+        [day, month, year] = [a, b, c];
+      } else {
+        [month, day, year] = [a, b, c];
+      }
+      
+      if (ampm?.toLowerCase() === 'pm' && hour !== 12) hour += 12;
+      if (ampm?.toLowerCase() === 'am' && hour === 12) hour = 0;
+      
+      const date = new Date(2000 + (year % 100), month - 1, day, hour, minute);
+      if (isNaN(date.getTime())) return datetimeStr;
+      
+      const monthShort = date.toLocaleString('default', { month: 'short' });
+      const hour12 = date.getHours() % 12 || 12;
+      const min = String(date.getMinutes()).padStart(2, '0');
+      const suffix = date.getHours() >= 12 ? 'pm' : 'am';
+      
+      return `${monthShort}/${day}, ${hour12}:${min}${suffix}`;
+    } catch {
+      return datetimeStr;
+    }
+  }
+  
+  const seenPrices = new Set();
+  const latestUnique = [];
+  let highestSellPrice = -Infinity;
+  let lowestSellPrice = Infinity;
+  let highestSellPriceTime = "";
+  let lowestSellPriceTime = "";
+  
+  for (let i = dataRows.length - 1; i >= 0; i--) {
+    const row = dataRows[i];
+    if (row.length <= Math.max(sellIndex, buyIndex, timeIndex)) continue;
+    
+    const price = row[sellIndex];
+    const buyPrice = row[buyIndex];
+    const rawTime = row[timeIndex];
+    const formattedTime = formatDateToCustomFormat(rawTime);
+    const numericPrice = parseFloat(price.replace(/[^0-9.]/g, ''));
+    
+    if (!isNaN(numericPrice)) {
+      if (numericPrice > highestSellPrice) {
+        highestSellPrice = numericPrice;
+        highestSellPriceTime = formattedTime;
+      }
+      if (numericPrice < lowestSellPrice) {
+        lowestSellPrice = numericPrice;
+        lowestSellPriceTime = formattedTime;
+      }
+    }
+    
+    if (latestUnique.length < 3 && !seenPrices.has(price)) {
+      seenPrices.add(price);
+      latestUnique.push({ time: formattedTime, price, buyPrice });
+    }
+  }
+  
+  const highLowDisplay = `
+    <div style="margin-bottom: 20px; font-size: 16px;">
+      <span style="color: #000;"><strong>High:</strong></span> <span style="color: #FF0000;">${highestSellPrice} (${highestSellPriceTime})</span> 
+      <br>
+      <br>
+      <span style="color: #000;"><strong>Low:</strong></span> <span style="color: #008000;">${lowestSellPrice} (${lowestSellPriceTime})</span>
+    </div>
+  `;
+  
+  const tableHTML = `
+    ${highLowDisplay}
+    <table>
+      <thead>
+        <tr><th>Date & Time</th><th>Bank Sell</th><th>Bank Buy</th></tr>
+      </thead>
+      <tbody>
+        ${latestUnique.map(row => `<tr><td>${row.time}</td><td>${row.price}</td><td>${row.buyPrice}</td></tr>`).join("")}
+      </tbody>
+    </table>
+  `;
+  
+  document.getElementById("gold-price-log").innerHTML = tableHTML;
+}
+
+loadGoldPriceLog();
+  </script>
+
+
+
+
+  <h2 style="margin-bottom: 0px;">Live Gold Price</h2>
   <div class="section">
-     <div class="charts-container">
+    <div class="charts-container">
       <div class="chart">
         <h3>
-  <img src="https://flagcdn.com/w40/in.png" alt="India Flag" style="height: 1em; vertical-align: middle; margin-right: 0.3em;">
-  Rupees: Price 1gram
-</h3>
+          <img src="https://flagcdn.com/w40/in.png" alt="India Flag" style="height: 1em; vertical-align: middle; margin-right: 0.3em;">
+          Rupees: Price 1gram
+        </h3>
         <div class="tradingview-widget-container">
           <div id="tradingview_xauinrg_chart"></div>
           <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
@@ -134,10 +269,9 @@
 
       <div class="chart">
         <h3>
-  <img src="https://flagcdn.com/us.svg" alt="USA Flag" style="height: 1em; vertical-align: middle; margin-right: 0.4em;">
-  USD: 1 Troy Oz (31.1035 gm)
-</h3>
-
+          <img src="https://flagcdn.com/us.svg" alt="USA Flag" style="height: 1em; vertical-align: middle; margin-right: 0.4em;">
+          USD: 1 Troy Oz (31.1035 gm)
+        </h3>
         <div class="tradingview-widget-container">
           <div id="tradingview_xausd_chart"></div>
           <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
@@ -164,13 +298,9 @@
     </div>
   </div>
 
-  <!-- Insert this inside your body, AFTER the XAU/USD chart section -->
-
   <h2 style="margin-bottom: 0px;">Market Sentiment</h2>
-<!-- Technical Analysis Widget -->
-<div class="section">
-      <div class="tradingview-widget-container" style="max-width: 100%; overflow: hidden;">
-   </div>
+  <div class="section">
+    <div class="tradingview-widget-container" style="max-width: 100%; overflow: hidden;"></div>
     <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js" async>
     {
       "interval": "1M",
@@ -185,15 +315,12 @@
     }
     </script>
   </div>
-</div>
 
   <h2 style="margin-bottom: 0px;">Gold News</h2>
-  <!-- TradingView News Widget -->
   <div class="news-section">
     <div class="widget-wrapper">
       <div class="tradingview-widget-container">
         <div class="tradingview-widget-container__widget"></div>
-        
         <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-timeline.js" async>
         {
           "feedMode": "symbol",
@@ -210,53 +337,29 @@
     </div>
   </div>
 
-  <!-- Ticker -->
-    <div class="ticker">
-        <!-- TradingView Widget BEGIN -->
-        <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-            {
-            "symbols": [
-                {
-                    "description": "Rupee Gold",
-                    "proName": "FX_IDC:XAUINRG"
-                },
-                {
-                    "description": "USD Gold per Oz",
-                    "proName": "OANDA:XAUUSD"
-                },
-                {
-                    "description": "S&P 500",
-                    "proName": "OANDA:SPX500USD"
-                },
-                {
-                    "description": "SENSEX",
-                    "proName": "BSE:SENSEX"
-                },
-                {
-                    "description": "USD INR",
-                    "proName": "FX_IDC:USDINR"
-                },
-                {
-                    "description": "SGD INR",
-                    "proName": "FX_IDC:SGDINR"
-                },
-                {
-                    "description": "Bitcoin",
-                    "proName": "BITSTAMP:BTCUSD"
-                }
-            ],
-            "showSymbolLogo": true,
-            "isTransparent": true,
-            "displayMode": "adaptive",
-            "colorTheme": "light",
-            "locale": "en"
-            }
-            </script>
-        </div>
-        <!-- TradingView Widget END -->
-  
+  <div class="ticker">
+    <div class="tradingview-widget-container">
+      <div class="tradingview-widget-container__widget"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+      {
+        "symbols": [
+          { "description": "Rupee Gold", "proName": "FX_IDC:XAUINRG" },
+          { "description": "USD Gold per Oz", "proName": "OANDA:XAUUSD" },
+          { "description": "S&P 500", "proName": "OANDA:SPX500USD" },
+          { "description": "SENSEX", "proName": "BSE:SENSEX" },
+          { "description": "USD INR", "proName": "FX_IDC:USDINR" },
+          { "description": "SGD INR", "proName": "FX_IDC:SGDINR" },
+          { "description": "Bitcoin", "proName": "BITSTAMP:BTCUSD" }
+        ],
+        "showSymbolLogo": true,
+        "isTransparent": true,
+        "displayMode": "adaptive",
+        "colorTheme": "light",
+        "locale": "en"
+      }
+      </script>
+    </div>
+  </div>
+
 </body>
 </html>
