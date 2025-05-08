@@ -126,6 +126,7 @@
 <div class="section" id="gold-price-log">
   <p>Loading latest prices...</p>
 </div>
+  <div id="last-scraped-time" style="margin-top: -32px; margin-left: 20px; margin-bottom: 30px; font-size: 11px; color: #666; text-align: left;"></div>
   
 <script>
 async function loadGoldPriceLog() {
@@ -258,6 +259,10 @@ function formatDateToCustomFormat(datetimeStr) {
   `;
   
   document.getElementById("gold-price-log").innerHTML = tableHTML;
+
+  if (latestUnique.length > 0) {
+  document.getElementById("last-scraped-time").innerText = `Last read from UOB at: ${latestUnique[0].time}`;
+}
 }
 
 loadGoldPriceLog();
