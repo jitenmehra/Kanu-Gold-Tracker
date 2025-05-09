@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -93,6 +94,7 @@
       width: 100%;
       border-collapse: collapse;
       margin-top: 10px;
+      margin-bottom: 20px;
     }
     th, td {
       border: 1px solid #ccc;
@@ -103,17 +105,33 @@
       background-color: #f8f1d6;
       color: #333;
     }
+    .price-chart-container {
+      margin-top: 5px;
+      margin-bottom: 40px;
+      padding: 15px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
   </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon"></script>
+
+
 </head>
 <body>
 
   <h1>Kanu's GOLD Digest</h1>
 
   <!-- Recent Gold Prices Table -->
+
   <h2 style="margin-bottom: 0px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
   <div style="display: flex; align-items: center;">
     <img src="https://vectorseek.com/wp-content/uploads/2023/09/United-Overseas-Bank-Icon-Logo-Vector.svg-.png" 
-         alt="UOB Logo" style="height: 30px; margin-right: 10px; margin-bottom: 10px;">
+         alt="UOB Logo" style="height: 30px; margin-right: 10px; margin-bottom: 0px;">
     Argor Cast Bar 100gm
   </div>
   <a href="https://www.uob.com.sg/online-rates/gold-and-silver-prices.page" 
@@ -126,150 +144,323 @@
 <div class="section" id="gold-price-log">
   <p>Loading latest prices...</p>
 </div>
-  <div id="last-scraped-time" style="margin-top: -32px; margin-left: 20px; margin-bottom: 30px; font-size: 11px; color: #666; text-align: left;"></div>
-  
+<div id="last-scraped-time" style="margin-top: -32px; margin-left: 20px; margin-bottom: 30px; font-size: 11px; color: #666; text-align: left;"></div>
+
+<!-- Chart Container -->
+
+   <h3 style="margin-bottom: 0px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+<div style="display: flex; align-items: center;">
+  <img src="https://vectorseek.com/wp-content/uploads/2023/09/United-Overseas-Bank-Icon-Logo-Vector.svg-.png" 
+       alt="UOB Logo" style="height: 30px; margin-right: 10px; margin-bottom: 0px;">
+     UOB - Argor 100gm (History)
+  </h3>
+</div>
+
+<div class="price-chart-container">
+  <div style="height: 350px; width: 100%;">
+    <canvas id="sellPriceChart"></canvas>
+  </div>
+</div>
+
+
 <script>
 async function loadGoldPriceLog() {
-  const res = await fetch("https://dl.dropboxusercontent.com/scl/fi/0650f06loeqnd6xd6cjrf/gold_price_log.csv?rlkey=vt1qtw8drvub3yg18u0owcu7u&raw=1");
-  const csv = await res.text();
-  const lines = csv.trim().split("\n");
-  const headers = lines[0].split(",").map(h => h.trim());
-  const dataRows = lines.slice(1).map(row => row.split(",").map(cell => cell.trim()));
-  const sellIndex = headers.indexOf("Sell Price");
-  const buyIndex = headers.indexOf("Buy Price");
-  const timeIndex = headers.indexOf("Scraped At");
-  
-  if (sellIndex === -1 || buyIndex === -1 || timeIndex === -1) {
-    console.error("Column headers not found.");
-    return;
-  }
-  
-  // Function to format the date into the desired format
-function formatDateToCustomFormat(datetimeStr) {
   try {
-    datetimeStr = datetimeStr.trim();
+    const res = await fetch("https://dl.dropboxusercontent.com/scl/fi/0650f06loeqnd6xd6cjrf/gold_price_log.csv?rlkey=vt1qtw8drvub3yg18u0owcu7u&raw=1");
+    const csv = await res.text();
+    const lines = csv.trim().split("\n");
+    const headers = lines[0].split(",").map(h => h.trim());
+    const dataRows = lines.slice(1).map(row => row.split(",").map(cell => cell.trim()));
+    
+    const sellIndex = headers.indexOf("Sell Price");
+    const buyIndex = headers.indexOf("Buy Price");
+    const timeIndex = headers.indexOf("Scraped At");
+    
+    if (sellIndex === -1 || buyIndex === -1 || timeIndex === -1) {
+      console.error("Column headers not found.");
+      return;
+    }
+    
+    // Function to format the date into the desired format
+    function formatDateToCustomFormat(datetimeStr) {
+      try {
+        datetimeStr = datetimeStr.trim();
 
-    // Case 1: YYYY-MM-DD HH:MM:SS
-    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(datetimeStr)) {
-      const [datePart, timePart] = datetimeStr.split(" ");
-      const [year, month, day] = datePart.split("-").map(Number);
-      const [hour, minute] = timePart.split(":").map(Number);
-      const date = new Date(year, month - 1, day, hour, minute);
+        // Case 1: YYYY-MM-DD HH:MM:SS
+        if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(datetimeStr)) {
+          const [datePart, timePart] = datetimeStr.split(" ");
+          const [year, month, day] = datePart.split("-").map(Number);
+          const [hour, minute] = timePart.split(":").map(Number);
+          const date = new Date(year, month - 1, day, hour, minute);
 
-      const monthShort = date.toLocaleString('default', { month: 'short' });
-      const hour12 = date.getHours() % 12 || 12;
-      const min = String(date.getMinutes()).padStart(2, '0');
-      const suffix = date.getHours() >= 12 ? 'pm' : 'am';
+          const monthShort = date.toLocaleString('default', { month: 'short' });
+          const hour12 = date.getHours() % 12 || 12;
+          const min = String(date.getMinutes()).padStart(2, '0');
+          const suffix = date.getHours() >= 12 ? 'pm' : 'am';
 
-      return `${monthShort}/${day}, ${hour12}:${min}${suffix}`;
+          return `${monthShort}/${day}, ${hour12}:${min}${suffix}`;
+        }
+
+        // Case 2: MM/DD/YY HH:MM AM/PM
+        const parts = datetimeStr.split(/\s+/);
+        if (parts.length < 2) return datetimeStr;
+
+        const [datePart, timePart, ampm] = parts;
+        const [a, b, c] = datePart.split('/').map(Number);
+        let [hour, minute] = timePart.split(':').map(Number);
+
+        if (isNaN(a) || isNaN(b) || isNaN(c)) return datetimeStr;
+
+        let month, day, year;
+        if (c > 31) {
+          [day, month, year] = [a, b, c];
+        } else {
+          [month, day, year] = [a, b, c];
+        }
+
+        if (ampm?.toLowerCase() === 'pm' && hour !== 12) hour += 12;
+        if (ampm?.toLowerCase() === 'am' && hour === 12) hour = 0;
+
+        const date = new Date(2000 + (year % 100), month - 1, day, hour, minute);
+        if (isNaN(date.getTime())) return datetimeStr;
+
+        const monthShort = date.toLocaleString('default', { month: 'short' });
+        const hour12 = date.getHours() % 12 || 12;
+        const min = String(date.getMinutes()).padStart(2, '0');
+        const suffix = date.getHours() >= 12 ? 'pm' : 'am';
+
+        return `${monthShort}/${day}, ${hour12}:${min}${suffix}`;
+      } catch {
+        return datetimeStr;
+      }
     }
 
-    // Case 2: MM/DD/YY HH:MM AM/PM
-    const parts = datetimeStr.split(/\s+/);
-    if (parts.length < 2) return datetimeStr;
-
-    const [datePart, timePart, ampm] = parts;
-    const [a, b, c] = datePart.split('/').map(Number);
-    let [hour, minute] = timePart.split(':').map(Number);
-
-    if (isNaN(a) || isNaN(b) || isNaN(c)) return datetimeStr;
-
-    let month, day, year;
-    if (c > 31) {
-      [day, month, year] = [a, b, c];
-    } else {
-      [month, day, year] = [a, b, c];
+    function cleanPrice(priceStr) {
+      return priceStr.endsWith('.00') ? priceStr.slice(0, -3) : priceStr;
     }
+    
+    // Process the data
+    const priceData = [];
+    const seenPrices = new Set();
+    const latestUnique = [];
+    let highestSellPrice = -Infinity;
+    let lowestSellPrice = Infinity;
+    let highestSellPriceTime = "";
+    let lowestSellPriceTime = "";
+    
+    // Create a mapping to consolidate time-price entries
+    const timeToPrice = new Map();
+    
+    // First pass - find high/low and collect unique latest entries for table
+    for (let i = dataRows.length - 1; i >= 0; i--) {
+      const row = dataRows[i];
+      if (row.length <= Math.max(sellIndex, buyIndex, timeIndex)) continue;
+      
+      const price = row[sellIndex];
+      const buyPrice = row[buyIndex];
+      const rawTime = row[timeIndex];
+      const formattedTime = formatDateToCustomFormat(rawTime);
+      const numericPrice = parseFloat(price.replace(/[^0-9.]/g, ''));
+      
+      if (!isNaN(numericPrice)) {
+        // Track this price entry for chart data
+        timeToPrice.set(formattedTime, numericPrice);
+        
+        // Track highest and lowest prices
+        if (numericPrice > highestSellPrice) {
+          highestSellPrice = numericPrice;
+          highestSellPriceTime = formattedTime;
+        }
+        if (numericPrice < lowestSellPrice) {
+          lowestSellPrice = numericPrice;
+          lowestSellPriceTime = formattedTime;
+        }
+      }
+      
+      // Collect the three most recent unique prices for the table
+      if (latestUnique.length < 3 && !seenPrices.has(price)) {
+        seenPrices.add(price);
+        latestUnique.push({ time: formattedTime, price, buyPrice });
+      }
+    }
+    
+    // Convert the map to array for chart data
+    for (const [time, price] of timeToPrice.entries()) {
+      priceData.push({ time, price });
+    }
+    
+    console.log(`Found ${priceData.length} unique price-time combinations`);
+    console.log(`High: ${highestSellPrice} at ${highestSellPriceTime}`);
+    console.log(`Low: ${lowestSellPrice} at ${lowestSellPriceTime}`);
+    
+    // Display the price table
+    const highLowDisplay = `
+      <div style="margin-bottom: 20px; font-size: 14px;">
+        <span style="color: #000;"><strong>High:</strong></span> <span style="color: #FF0000;">${highestSellPrice} (${highestSellPriceTime})</span> 
+        <br>
+        <br>
+        <span style="color: #000;"><strong>Low:</strong></span> <span style="color: #008000;">${lowestSellPrice} (${lowestSellPriceTime})</span>
+      </div>
+    `;
+    
+    const tableHTML = `
+      ${highLowDisplay}
+      <table>
+        <thead>
+          <tr><th>Date & Time</th><th>Bank Sell</th><th>Bank Buy</th></tr>
+        </thead>
+        <tbody>
+          ${latestUnique.map(row => `<tr><td>${row.time}</td><td>${cleanPrice(row.price)}</td><td>${cleanPrice(row.buyPrice)}</td></tr>`).join("")}
+        </tbody>
+      </table>
+    `;
+    
+    document.getElementById("gold-price-log").innerHTML = tableHTML;
 
-    if (ampm?.toLowerCase() === 'pm' && hour !== 12) hour += 12;
-    if (ampm?.toLowerCase() === 'am' && hour === 12) hour = 0;
-
-    const date = new Date(2000 + (year % 100), month - 1, day, hour, minute);
-    if (isNaN(date.getTime())) return datetimeStr;
-
-    const monthShort = date.toLocaleString('default', { month: 'short' });
-    const hour12 = date.getHours() % 12 || 12;
-    const min = String(date.getMinutes()).padStart(2, '0');
-    const suffix = date.getHours() >= 12 ? 'pm' : 'am';
-
-    return `${monthShort}/${day}, ${hour12}:${min}${suffix}`;
-  } catch {
-    return datetimeStr;
+    if (latestUnique.length > 0) {
+      document.getElementById("last-scraped-time").innerText = `Last read from UOB Website on: ${latestUnique[0].time}`;
+    }
+    
+    // Draw the chart with the collected data
+    drawSellPriceChart(priceData, lowestSellPrice, highestSellPrice);
+    
+  } catch (error) {
+    console.error("Error loading gold price data:", error);
+    document.getElementById("gold-price-log").innerHTML = `<p>Error loading data: ${error.message}</p>`;
   }
 }
 
-  function cleanPrice(priceStr) {
-  return priceStr.endsWith('.00') ? priceStr.slice(0, -3) : priceStr;
-}
+function drawSellPriceChart(data, low, high) {
+  try {
+    console.log("Drawing chart with data:", data.length, "entries");
+    //console.log("High:", high, "Low:", low);
+    
+    const seenPrices = new Set();
+    const recentUnique = [];
+
+          // Traverse from most recent to oldest
+            for (let i = data.length - 1; i >= 0 ; i--) 
+              {
+              const entry = data[i];
+              const priceStr = entry.price.toString();
+                if (!seenPrices.has(priceStr)) 
+                {
+                seenPrices.add(priceStr);
+                recentUnique.push(entry);
+                }
+              }
+
+// Now reverse so it goes from oldest to newest for the chart limited to 300 entries
+
+const trimmed = recentUnique.slice(-300);    
+    
+const labels = trimmed.map(entry => entry.time);
+const prices = trimmed.map(entry => entry.price);
 
   
-  const seenPrices = new Set();
-  const latestUnique = [];
-  let highestSellPrice = -Infinity;
-  let lowestSellPrice = Infinity;
-  let highestSellPriceTime = "";
-  let lowestSellPriceTime = "";
-  
-  for (let i = dataRows.length - 1; i >= 0; i--) {
-    const row = dataRows[i];
-    if (row.length <= Math.max(sellIndex, buyIndex, timeIndex)) continue;
+    console.log("Chart will display", labels.length, "data points");
+       
+    const ctx = document.getElementById('sellPriceChart').getContext('2d');
     
-    const price = row[sellIndex];
-    const buyPrice = row[buyIndex];
-    const rawTime = row[timeIndex];
-    const formattedTime = formatDateToCustomFormat(rawTime);
-    const numericPrice = parseFloat(price.replace(/[^0-9.]/g, ''));
-    
-    if (!isNaN(numericPrice)) {
-      if (numericPrice > highestSellPrice) {
-        highestSellPrice = numericPrice;
-        highestSellPriceTime = formattedTime;
-      }
-      if (numericPrice < lowestSellPrice) {
-        lowestSellPrice = numericPrice;
-        lowestSellPriceTime = formattedTime;
-      }
+    // Always destroy the existing chart to prevent memory leaks and visual glitches
+    if (window.sellChart) {
+      window.sellChart.destroy();
     }
     
-    if (latestUnique.length < 3 && !seenPrices.has(price)) {
-      seenPrices.add(price);
-      latestUnique.push({ time: formattedTime, price, buyPrice });
-    }
+    // Create new chart with exact data points matching the high/low displayed in table
+    window.sellChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'UOB Sell Price',
+          data: prices,
+          borderColor: '#D4AF37', // Gold color
+          borderWidth: 2,
+          backgroundColor: 'rgba(212, 175, 55, 0.15)',
+          fill: true,
+          tension: 0.2,
+          pointRadius: 1,
+          pointHoverRadius: 4,
+          pointBackgroundColor: '#D4AF37'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+          duration: 0 // Disable animations for faster rendering
+        },
+        scales: {
+          y: {
+            beginAtZero: false,
+              ticks: {
+              callback: value => value.toLocaleString(),
+              font: {
+                size: 11
+              }
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)'
+            }
+          },
+          x: {
+            reverse: false,
+            
+            ticks: {
+              maxRotation: 90,
+              minRotation: 45,
+              autoSkip: true,
+              maxTicksLimit: 20,
+              font: {
+                size: 10
+              }
+            },
+            grid: {
+              display: false
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false,
+            position: 'top'
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `Price: ${context.parsed.y.toLocaleString()}`;
+              }
+            }
+          }
+        }
+      }
+    });
+    
+    console.log("Chart rendering complete");
+  } catch (error) {
+    console.error("Error drawing chart:", error);
+    document.getElementById('sellPriceChart').insertAdjacentHTML('afterend', 
+      `<div style="color: red; text-align: center; margin-top: 10px;">
+        Error rendering chart: ${error.message}
+      </div>`);
   }
-  
-  const highLowDisplay = `
-    <div style="margin-bottom: 20px; font-size: 16px;">
-      <span style="color: #000;"><strong>High:</strong></span> <span style="color: #FF0000;">${highestSellPrice} (${highestSellPriceTime})</span> 
-      <br>
-      <br>
-      <span style="color: #000;"><strong>Low:</strong></span> <span style="color: #008000;">${lowestSellPrice} (${lowestSellPriceTime})</span>
-    </div>
-  `;
-  
-  const tableHTML = `
-    ${highLowDisplay}
-    <table>
-      <thead>
-        <tr><th>Date & Time</th><th>Bank Sell</th><th>Bank Buy</th></tr>
-      </thead>
-      <tbody>
-        ${latestUnique.map(row => `<tr><td>${row.time}</td><td>${cleanPrice(row.price)}</td><td>${cleanPrice(row.buyPrice)}</td></tr>`).join("")}
-      </tbody>
-    </table>
-  `;
-  
-  document.getElementById("gold-price-log").innerHTML = tableHTML;
-
-  if (latestUnique.length > 0) {
-  document.getElementById("last-scraped-time").innerText = `Last read from UOB at: ${latestUnique[0].time}`;
-}
 }
 
-loadGoldPriceLog();
-  </script>
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("DOM fully loaded, initializing gold price chart");
+  setTimeout(loadGoldPriceLog, 100); // Small delay to ensure DOM is ready
+});
 
-
-
+// Also try to load immediately to avoid waiting
+try {
+  console.log("Attempting immediate load of gold price data");
+  loadGoldPriceLog();
+} catch (e) {
+  console.log("Immediate load failed, will retry on DOMContentLoaded", e);
+}
+</script>
 
   <h2 style="margin-bottom: 0px;">Live Gold Price</h2>
   <div class="section">
@@ -303,35 +494,38 @@ loadGoldPriceLog();
         </div>
       </div>
 
-      <div class="chart">
-        <h3>
-          <img src="https://flagcdn.com/us.svg" alt="USA Flag" style="height: 1em; vertical-align: middle; margin-right: 0.4em;">
-          USD: 1 Troy Oz (31.1035 gm)
-        </h3>
-        <div class="tradingview-widget-container">
-          <div id="tradingview_xausd_chart"></div>
-          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
-          {
-            "symbols": [["FX_IDC:XAUUSD|3M"]],
-            "chartOnly": false,
-            "width": "100%",
-            "height": "400",
-            "locale": "en",
-            "colorTheme": "light",
-            "autosize": true,
-            "showVolume": false,
-            "showMA": false,
-            "hideDateRanges": false,
-            "hideMarketStatus": false,
-            "hideSymbolLogo": true,
-            "scalePosition": "right",
-            "scaleMode": "Normal",
-            "fontFamily": "Trebuchet MS, sans-serif"
-          }
-          </script>
-        </div>
-      </div>
+```
+  <div class="chart">
+    <h3>
+      <img src="https://flagcdn.com/us.svg" alt="USA Flag" style="height: 1em; vertical-align: middle; margin-right: 0.4em;">
+      USD: 1 Troy Oz (31.1035 gm)
+    </h3>
+    <div class="tradingview-widget-container">
+      <div id="tradingview_xausd_chart"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js" async>
+      {
+        "symbols": [["FX_IDC:XAUUSD|3M"]],
+        "chartOnly": false,
+        "width": "100%",
+        "height": "400",
+        "locale": "en",
+        "colorTheme": "light",
+        "autosize": true,
+        "showVolume": false,
+        "showMA": false,
+        "hideDateRanges": false,
+        "hideMarketStatus": false,
+        "hideSymbolLogo": true,
+        "scalePosition": "right",
+        "scaleMode": "Normal",
+        "fontFamily": "Trebuchet MS, sans-serif"
+      }
+      </script>
     </div>
+  </div>
+</div>
+```
+
   </div>
 
   <h2 style="margin-bottom: 0px;">Market Sentiment</h2>
