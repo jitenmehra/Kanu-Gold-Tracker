@@ -363,8 +363,8 @@ const prices = trimmed.map(entry => entry.price);
     const minIndex = prices.indexOf(Math.min(...prices));
 
     const pointColors = prices.map((_, i) => {
-      if (i === maxIndex) return 'green';
-      if (i === minIndex) return 'red';
+      if (i === maxIndex) return 'red';
+      if (i === minIndex) return 'green';
       return '#D4AF37'; // default gold color
     });
     
