@@ -166,7 +166,7 @@
 <script>
 async function loadGoldPriceLog() {
   try {
-    const res = await fetch("https://dl.dropboxusercontent.com/scl/fi/0650f06loeqnd6xd6cjrf/gold_price_log.csv?rlkey=vt1qtw8drvub3yg18u0owcu7u&raw=1");
+    const res = await fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9_zeiGCjNcnyad8xBd3LlFSzYl1fHv3ogLp_rzf1jMYs334gd0-zKBQkThdpJtIfFI1fujEzxsvoi/pub?output=csv");
     const csv = await res.text();
     const lines = csv.trim().split("\n");
     const headers = lines[0].split(",").map(h => h.trim());
