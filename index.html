@@ -357,6 +357,21 @@ const trimmed = recentUnique.slice(-300);
 const labels = trimmed.map(entry => entry.time);
 const prices = trimmed.map(entry => entry.price);
 
+    
+    // Identify highest and lowest price indices
+    const maxIndex = prices.indexOf(Math.max(...prices));
+    const minIndex = prices.indexOf(Math.min(...prices));
+
+    const pointColors = prices.map((_, i) => {
+      if (i === maxIndex) return 'green';
+      if (i === minIndex) return 'red';
+      return '#D4AF37'; // default gold color
+    });
+    
+    const pointRadii = prices.map((_, i) => {
+      if (i === maxIndex || i === minIndex) return 5; // Bigger dot for high and low
+      return 1; // Default size for others
+    });
   
     console.log("Chart will display", labels.length, "data points");
        
@@ -380,9 +395,9 @@ const prices = trimmed.map(entry => entry.price);
           backgroundColor: 'rgba(212, 175, 55, 0.15)',
           fill: true,
           tension: 0.2,
-          pointRadius: 1,
+          pointRadius: pointRadii,
           pointHoverRadius: 4,
-          pointBackgroundColor: '#D4AF37'
+          pointBackgroundColor: pointColors
         }]
       },
       options: {
@@ -395,6 +410,7 @@ const prices = trimmed.map(entry => entry.price);
           y: {
             beginAtZero: false,
               ticks: {
+                //stepSize: 50,
               callback: value => value.toLocaleString(),
               font: {
                 size: 11
